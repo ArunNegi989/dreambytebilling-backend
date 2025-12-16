@@ -66,7 +66,6 @@ export interface IInvoice extends Document {
     accountNo?: string;
     ifsc?: string;
     branch?: string;
-    sector?: string;
     pincode?: string;
   };
 
@@ -135,7 +134,6 @@ const InvoiceSchema = new Schema<IInvoice>(
       accountNo: String,
       ifsc: String,
       branch: String,
-      sector: String,
       pincode: String,
     },
   },

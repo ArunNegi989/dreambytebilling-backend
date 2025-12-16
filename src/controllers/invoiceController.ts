@@ -99,3 +99,28 @@ export const generateInvoicePdf = async (req: Request, res: Response) => {
     }
   }
 };
+
+/* ---------------- DELETE INVOICE ---------------- */
+export const deleteInvoice = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ error: "Invoice ID is required" });
+    }
+
+    const deletedInvoice = await Invoice.findByIdAndDelete(id);
+
+    if (!deletedInvoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    res.json({
+      message: "Invoice deleted successfully",
+      invoiceId: id,
+    });
+  } catch (error) {
+    console.error("Delete Invoice Error:", error);
+    res.status(500).json({ error: "Failed to delete invoice" });
+  }
+};
