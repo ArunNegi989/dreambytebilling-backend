@@ -78,71 +78,81 @@ export function streamInvoicePdf(
   doc.fillColor("#333").polygon([470, 0], [595, 0], [595, 35]).fill();
 
   /* -------- HEADER -------- */
-  doc
-    .fillColor(COLORS.darkGold)
-    .font("Helvetica-Bold")
-    .fontSize(20)
-    .text("DREAMBYTE SOLUTION (OPC) PVT. LTD.", left, 38);
+/* -------- HEADER -------- */
+doc
+  .fillColor(COLORS.darkGold)
+  .font("Helvetica-Bold")
+  .fontSize(18)
+  .text("DREAMBYTE SOLUTION (OPC) PVT. LTD.", left, 38, {
+    width: 360,
+  });
 
-  doc.moveTo(left, 66).lineTo(left + 420, 66).stroke(COLORS.gold);
+doc.moveTo(left, 66).lineTo(left + 360, 66).stroke(COLORS.gold);
 
-  doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
-  doc.text(
-    "Near Siddhartha Group of Institutions Danda Khudanewala, Sahastradhara Road, Dehradun, Uttarakhand - 248001",
-    left,
-    78,
-    { width: 380 }
-  );
+/* --- PAN / GST / CATEGORY (MOVED UP) --- */
+doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
-  doc.text(`PAN No: ${invoice.header?.panNo || "-"}`, left, 110);
-  doc.text(`Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`, left, 124);
-  doc.text(`Category: ${invoice.header?.category || "-"}`, left, 138);
+doc.text(`PAN No: ${invoice.header?.panNo || "-"}`, left, 78);
+doc.text(`Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`, left, 92);
+doc.text(`Category: ${invoice.header?.category || "-"}`, left, 106);
 
-  /* -------- LOGO -------- */
-/* -------- LOGO + CONTACT -------- */
-const logoPath = resolveImage(invoice.header?.logoPath);
+doc.text(`CIN No: ${invoice.header?.office?.cin || "-"}`, left, 120);
+doc.text(`MSME No: ${invoice.header?.office?.msme || "-"}`, left, 134);
 
-const logoX = right - 220;
-const logoY = 20;
-const logoWidth = 200;
+/* -------- LOGO (RIGHT SIDE OF HEADING) -------- */
+/* -------- LOGO + CONTACT DETAILS (RIGHT SIDE) -------- */
+const logoPath = path.join(process.cwd(), "public", "logo.png");
 
-if (logoPath) {
+const logoX = right - 160;
+const logoY = 28;
+const logoWidth = 130;
+
+if (fs.existsSync(logoPath)) {
   doc.image(logoPath, logoX, logoY, {
     width: logoWidth,
   });
-
-  // Phone & Email below logo
-  const contactY = logoY + 110;
-
-  doc
-    .font("Helvetica")
-    .fontSize(9)
-    .fillColor(COLORS.text)
-    .text(
-      `📞 ${invoice.header?.phone || "+91-XXXXXXXXXX"}`,
-      logoX,
-      contactY,
-      { width: logoWidth, align: "center" }
-    );
-
-  doc.text(
-    `✉️ ${invoice.header?.email || "info@dreambytesolution.com"}`,
-    logoX,
-    contactY + 12,
-    { width: logoWidth, align: "center" }
-  );
 }
 
-  /* -------- INVOICE BAR -------- */
-  doc.rect(left, 165, right - left, 32).fill(COLORS.gold);
+/* ---- CONTACT INFO BELOW LOGO ---- */
+const contactStartY = logoY + 95;
 
-  doc.fillColor("#fff").fontSize(11);
-  doc.text("Invoice No:", left + 12, 174);
-  doc.text("Invoice Date:", right - 200, 174);
+doc
+  .font("Helvetica")
+  .fontSize(9)
+  .fillColor(COLORS.text);
 
-  doc.font("Helvetica-Bold");
-  doc.text(invoice.office?.invoiceNo || "-", left + 90, 174);
-  doc.text(invoice.office?.dateOfInvoice || "-", right - 80, 174, { align: "right" });
+/* Phone Numbers */
+doc.text(
+  `Phone ${invoice.header?.office?.personalPhone || ""}${
+    invoice.header?.office?.alternatePhone
+      ? " , " + invoice.header.office.alternatePhone
+      : ""
+  }`,
+  logoX,
+  contactStartY,
+  { width: logoWidth, align: "center" }
+);
+
+/* Email */
+doc.text(
+  `Email ${invoice.header?.office?.officeEmail || "-"}`,
+  logoX,
+  contactStartY + 14,
+  { width: logoWidth, align: "center" }
+);
+
+/* Address */
+doc.text(
+  invoice.header?.office?.officeAddress || "-",
+  logoX,
+  contactStartY + 28,
+  {
+    width: logoWidth,
+    align: "center",
+  }
+);
+
+
 
   /* -------- META INFO -------- */
   let y = 215;
