@@ -77,7 +77,6 @@ export function streamInvoicePdf(
   doc.fillColor(COLORS.darkGold).polygon([500, 0], [595, 0], [595, 65]).fill();
   doc.fillColor("#333").polygon([470, 0], [595, 0], [595, 35]).fill();
 
-  /* -------- HEADER -------- */
 /* -------- HEADER -------- */
 doc
   .fillColor(COLORS.darkGold)
@@ -89,70 +88,94 @@ doc
 
 doc.moveTo(left, 66).lineTo(left + 360, 66).stroke(COLORS.gold);
 
-/* --- PAN / GST / CATEGORY (MOVED UP) --- */
+ /* -------- HEADER DETAILS -------- */
+ const headerStartY = 95;
+
 doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
-doc.text(`PAN No: ${invoice.header?.panNo || "-"}`, left, 78);
-doc.text(`Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`, left, 92);
-doc.text(`Category: ${invoice.header?.category || "-"}`, left, 106);
+const headerTexts = [
+  `PAN No: ${invoice.header?.panNo || "-"}`,
+  `Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`,
+  `Category: ${invoice.header?.category || "-"}`,
+  `CIN No: ${invoice.header?.office?.cin || "-"}`,
+  `MSME No: ${invoice.header?.office?.msme || "-"}`,
+  `Email: ${invoice.header?.office?.officeEmail || "-"}`, // ✅ ADDED
+];
 
-doc.text(`CIN No: ${invoice.header?.office?.cin || "-"}`, left, 120);
-doc.text(`MSME No: ${invoice.header?.office?.msme || "-"}`, left, 134);
+doc.text(headerTexts[0], left, headerStartY);
+doc.text(headerTexts[1], left, headerStartY + 14);
+doc.text(headerTexts[2], left, headerStartY + 28);
+doc.text(headerTexts[3], left, headerStartY + 42);
+doc.text(headerTexts[4], left, headerStartY + 56);
+doc.text(headerTexts[5], left, headerStartY + 70); // 👈 Email line
 
-/* -------- LOGO (RIGHT SIDE OF HEADING) -------- */
-/* -------- LOGO + CONTACT DETAILS (RIGHT SIDE) -------- */
-const logoPath = path.join(process.cwd(), "public", "logo.png");
+  /* -------- DYNAMIC LINE (TEXT WIDTH ONLY) -------- */
+doc.font("Helvetica").fontSize(9);
 
-const logoX = right - 160;
-const logoY = 28;
-const logoWidth = 130;
-
-if (fs.existsSync(logoPath)) {
-  doc.image(logoPath, logoX, logoY, {
-    width: logoWidth,
-  });
-}
-
-/* ---- CONTACT INFO BELOW LOGO ---- */
-const contactStartY = logoY + 95;
+const maxTextWidth = Math.max(
+  ...headerTexts.map(t => doc.widthOfString(t))
+);
 
 doc
-  .font("Helvetica")
-  .fontSize(9)
-  .fillColor(COLORS.text);
+  .save()
+  .strokeColor(COLORS.gold)
+  .lineWidth(1)
+  .moveTo(left, headerStartY + 86)
+  .lineTo(left + maxTextWidth, headerStartY + 86)
+  .stroke()
+  .restore();
+/* -------- LOGO + CONTACT DETAILS (RIGHT SIDE) -------- */
+  const logoPath = path.join(process.cwd(), "public", "logo.png");
+  const logoX = right - 180;
+  const logoY = 10;
+  const logoWidth = 180;
 
-/* Phone Numbers */
-doc.text(
-  `Phone ${invoice.header?.office?.personalPhone || ""}${
-    invoice.header?.office?.alternatePhone
-      ? " , " + invoice.header.office.alternatePhone
-      : ""
-  }`,
-  logoX,
-  contactStartY,
-  { width: logoWidth, align: "center" }
-);
-
-/* Email */
-doc.text(
-  `Email ${invoice.header?.office?.officeEmail || "-"}`,
-  logoX,
-  contactStartY + 14,
-  { width: logoWidth, align: "center" }
-);
-
-/* Address */
-doc.text(
-  invoice.header?.office?.officeAddress || "-",
-  logoX,
-  contactStartY + 28,
-  {
-    width: logoWidth,
-    align: "center",
+  if (fs.existsSync(logoPath)) {
+    doc.image(logoPath, logoX, logoY, { width: logoWidth });
   }
-);
+
+  /* -------- CONTACT DETAILS BELOW LOGO -------- */
+  const logoHeight = 80; // approx
+  const contactStartY = logoY + logoHeight + 45;
+
+  doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
+
+  /* Phone 1 */
+  doc.text(
+    `Phone: ${invoice.header?.office?.personalPhone || "-"}`,
+    logoX,
+    contactStartY,
+    { width: logoWidth, align: "center" }
+  );
+
+  /* Phone 2 */
+  if (invoice.header?.office?.alternatePhone) {
+    doc.text(
+      `Phone: ${invoice.header.office.alternatePhone}`,
+      logoX,
+      contactStartY + 14,
+      { width: logoWidth, align: "center" }
+    );
+  }
 
 
+  /* Address */
+  doc.text(
+    invoice.header?.office?.officeAddress || "-",
+    logoX,
+    contactStartY + 28,
+    { width: logoWidth, align: "center" }
+  );
+
+  /* -------- LINE BELOW ADDRESS -------- */
+  doc
+    .save()
+    .strokeColor(COLORS.gold)
+    .lineWidth(1)
+    .moveTo(logoX, contactStartY + 45)
+    .lineTo(logoX + logoWidth, contactStartY + 45)
+    .stroke()
+    .restore();
 
   /* -------- META INFO -------- */
   let y = 215;
