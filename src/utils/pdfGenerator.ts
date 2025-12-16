@@ -86,9 +86,8 @@ export function streamInvoicePdf(
     doc.image(logoPath, logoX, logoY, { width: logoWidth });
   }
 
-  /* -------- CONTACT DETAILS (RESTORED) -------- */
+  /* -------- CONTACT DETAILS -------- */
   const contactStartY = logoY + 125;
-
   doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
   doc.text(
@@ -176,14 +175,14 @@ export function streamInvoicePdf(
     { width: tableWidth - 16 }
   );
 
-  const infoHeight = doc.heightOfString(
-    `Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
-    { width: tableWidth - 16 }
-  );
+  let currentY =
+    infoStartY +
+    doc.heightOfString(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`, {
+      width: tableWidth - 16,
+    }) +
+    20;
 
   /* ================= ITEMS TABLE ================= */
-
-  let currentY = infoStartY + infoHeight + 20;
 
   const columns = [
     { label: "S.N.", w: 0.05 },
@@ -217,9 +216,8 @@ export function streamInvoicePdf(
       item.sacHsn || "-",
       item.qty || "-",
       item.note || "",
-     formatINR(Number(item.rate) || 0),
-formatINR(Number(item.amount) || 0),
-
+      formatINR(Number(item.rate) || 0),
+      formatINR(Number(item.amount) || 0),
     ];
 
     let rowHeight = 0;
@@ -250,21 +248,10 @@ formatINR(Number(item.amount) || 0),
 
   currentY += 14;
 
-  doc.font("Helvetica-Bold").fontSize(9);
-  doc.text("Rupees in words:", tableX + 8, currentY);
-
-  doc.font("Helvetica").fontSize(9);
-  doc.text(
-    invoice.amountInWords || "-",
-    tableX + 120,
-    currentY,
-    { width: tableWidth - 130 }
-  );
-
-  currentY += 20;
-
   const labelX = tableX + tableWidth - 220;
   const valueX = tableX + tableWidth - 90;
+
+  doc.font("Helvetica").fontSize(9);
 
   [
     ["Total Taxable Value:", invoice.totals?.subtotal],
@@ -295,8 +282,64 @@ formatINR(Number(item.amount) || 0),
     { width: 80, align: "right" }
   );
 
+  currentY += 18;
+
+  /* -------- RUPEES IN WORDS (MOVED BELOW TOTALS) -------- */
+
+  doc.font("Helvetica-Bold").fontSize(9);
+  doc.text("Rupees in words:", tableX + 8, currentY);
+
+  doc.font("Helvetica").fontSize(9);
+  doc.text(
+    invoice.amountInWords || "-",
+    tableX + 120,
+    currentY,
+    { width: tableWidth - 130 }
+  );
+
+  currentY +=
+    doc.heightOfString(invoice.amountInWords || "-", {
+      width: tableWidth - 130,
+    }) + 10;
+
+    /* -------- BANK DETAILS (ONE BOX ROW) -------- */
+
+/* -------- BANK DETAILS (ONE BOX ROW - BIGGER FONT) -------- */
+
+const bankText = [
+  `Bank Name: ${invoice.bank?.bankName || "-"}`,
+  `A/C No: ${invoice.bank?.accountNo || "-"}`,
+  `IFSC: ${invoice.bank?.ifsc || "-"}`,
+  `Branch: ${invoice.bank?.branch || "-"}`,
+  `Pincode: ${invoice.bank?.pincode || "-"}`,
+].join("   |   ");
+
+// increased font size
+doc.font("Helvetica-Bold").fontSize(9.5);
+
+// calculate height safely
+const bankHeight =
+  doc.heightOfString(bankText, {
+    width: tableWidth - 16,
+  }) + 12;
+
+// draw box
+doc.rect(tableX, currentY, tableWidth, bankHeight)
+   .stroke(COLORS.muted);
+
+// text inside box
+doc.text(
+  bankText,
+  tableX + 8,
+  currentY + 6,
+  { width: tableWidth - 16 }
+);
+
+currentY += bankHeight + 6;
+
+
   /* -------- FINAL BORDER (AUTO-FIT) -------- */
-  const tableHeight = currentY - tableY + 16;
+  const tableHeight = currentY - tableY + 10;
 
   doc.rect(tableX, tableY, tableWidth, tableHeight).stroke(COLORS.muted);
 
