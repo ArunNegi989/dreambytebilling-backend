@@ -19,7 +19,10 @@ const formatINR = (n = 0) =>
     maximumFractionDigits: 2,
   })}`;
 
-/* ---------------- MAIN PDF ---------------- */
+/* ---- CLEAN NUMBER (FIXES ¹ ISSUE) ---- */
+const cleanNumber = (v: any) =>
+  Number(String(v ?? "").replace(/[^\d.]/g, "")) || 0;
+
 /* ---------------- MAIN PDF ---------------- */
 export function streamInvoicePdf(
   res: Response,
@@ -41,12 +44,13 @@ export function streamInvoicePdf(
   doc.rect(0, 0, W, H).fill(COLORS.bg);
 
   /* -------- TOP DESIGN -------- */
-  doc.fillColor(COLORS.gold).polygon([420,0],[595,0],[595,110]).fill();
-  doc.fillColor(COLORS.darkGold).polygon([500,0],[595,0],[595,65]).fill();
-  doc.fillColor("#333").polygon([470,0],[595,0],[595,35]).fill();
+  doc.fillColor(COLORS.gold).polygon([420, 0], [595, 0], [595, 110]).fill();
+  doc.fillColor(COLORS.darkGold).polygon([500, 0], [595, 0], [595, 65]).fill();
+  doc.fillColor("#333").polygon([470, 0], [595, 0], [595, 35]).fill();
 
   /* -------- HEADER -------- */
-  doc.fillColor(COLORS.darkGold)
+  doc
+    .fillColor(COLORS.darkGold)
     .font("Helvetica-Bold")
     .fontSize(18)
     .text("DREAMBYTE SOLUTION (OPC) PVT. LTD.", left, 38, { width: 360 });
@@ -57,25 +61,16 @@ export function streamInvoicePdf(
   const headerStartY = 95;
   doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
-  const headerTexts = [
+  [
     `PAN No: ${invoice.header?.panNo || "-"}`,
     `Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`,
     `Category: ${invoice.header?.category || "-"}`,
     `CIN No: ${invoice.header?.office?.cin || "-"}`,
     `MSME No: ${invoice.header?.office?.msme || "-"}`,
     `Email: ${invoice.header?.office?.officeEmail || "-"}`,
-  ];
+  ].forEach((t, i) => doc.text(t, left, headerStartY + i * 14));
 
-  headerTexts.forEach((t, i) =>
-    doc.text(t, left, headerStartY + i * 14)
-  );
-
-  const maxTextWidth = Math.max(...headerTexts.map(t => doc.widthOfString(t)));
-  doc.moveTo(left, headerStartY + 86)
-     .lineTo(left + maxTextWidth, headerStartY + 86)
-     .stroke(COLORS.gold);
-
-  /* -------- LOGO + CONTACT -------- */
+  /* -------- LOGO -------- */
   const logoPath = path.join(process.cwd(), "public", "logo.png");
   const logoX = right - 180;
   const logoY = 10;
@@ -85,24 +80,39 @@ export function streamInvoicePdf(
     doc.image(logoPath, logoX, logoY, { width: logoWidth });
   }
 
+  /* -------- CONTACT DETAILS -------- */
   const contactStartY = logoY + 125;
 
-  doc.text(`Phone: ${invoice.header?.office?.personalPhone || "-"}`,
-    logoX, contactStartY, { width: logoWidth, align: "center" });
+  doc.font("Helvetica").fontSize(9);
+
+  doc.text(
+    `Phone: ${invoice.header?.office?.personalPhone || "-"}`,
+    logoX,
+    contactStartY,
+    { width: logoWidth, align: "center" }
+  );
 
   if (invoice.header?.office?.alternatePhone) {
-    doc.text(`Phone: ${invoice.header.office.alternatePhone}`,
-      logoX, contactStartY + 14, { width: logoWidth, align: "center" });
+    doc.text(
+      `Phone: ${invoice.header.office.alternatePhone}`,
+      logoX,
+      contactStartY + 14,
+      { width: logoWidth, align: "center" }
+    );
   }
 
-  doc.text(invoice.header?.office?.officeAddress || "-",
-    logoX, contactStartY + 28, { width: logoWidth, align: "center" });
+  doc.text(
+    invoice.header?.office?.officeAddress || "-",
+    logoX,
+    contactStartY + 28,
+    { width: logoWidth, align: "center" }
+  );
 
   doc.moveTo(logoX, contactStartY + 45)
      .lineTo(logoX + logoWidth, contactStartY + 45)
      .stroke(COLORS.gold);
 
-  /* ================= TABLE ================= */
+  /* ================= MAIN TABLE ================= */
 
   const tableX = left;
   const tableY = 190;
@@ -112,30 +122,22 @@ export function streamInvoicePdf(
   const row1Height = 28;
   const row2Height = 38;
 
-  /* -------- ROW 1 -------- */
-  doc.font("Helvetica-Bold").fontSize(10);
- 
-
-  doc.fontSize(11);
+  doc.font("Helvetica-Bold").fontSize(11);
   doc.text("TAX INVOICE", tableX, tableY + 7, {
     width: tableWidth,
     align: "center",
   });
 
-  /* -------- ROW 2 -------- */
   let row2Y = tableY + row1Height + 8;
   doc.font("Helvetica").fontSize(9);
 
   doc.text(`Invoice No : ${invoice.invoiceNo || "-"}`, tableX + 8, row2Y);
   doc.text(`Date of Invoice : ${invoice.dateOfInvoice || "-"}`,
     tableX + tableWidth / 2 + 8, row2Y);
-
   doc.text(`Place of Supply : ${invoice.placeOfSupply || "-"}`,
     tableX + 8, row2Y + 14);
 
-  /* -------- ROW 3 -------- */
   let row3Y = tableY + row1Height + row2Height + 10;
-
   doc.font("Helvetica-Bold").fontSize(9);
   doc.text("BILLED TO:", tableX + 8, row3Y);
   doc.text("SHIP TO:", tableX + tableWidth / 2 + 8, row3Y);
@@ -146,36 +148,128 @@ export function streamInvoicePdf(
   let shipY = row3Y + 16;
 
   doc.text(invoice.billedTo?.name || "-", tableX + 8, billY, { width: colWidth });
-  billY += doc.heightOfString(invoice.billedTo?.name || "-", { width: colWidth });
-  doc.text(invoice.billedTo?.address || "-", tableX + 8, billY, { width: colWidth });
   billY += doc.heightOfString(invoice.billedTo?.address || "-", { width: colWidth });
+  doc.text(invoice.billedTo?.address || "-", tableX + 8, billY, { width: colWidth });
 
   doc.text(invoice.shipTo?.name || "-", tableX + tableWidth / 2 + 8, shipY, { width: colWidth });
-  shipY += doc.heightOfString(invoice.shipTo?.name || "-", { width: colWidth });
-  doc.text(invoice.shipTo?.address || "-", tableX + tableWidth / 2 + 8, shipY, { width: colWidth });
   shipY += doc.heightOfString(invoice.shipTo?.address || "-", { width: colWidth });
+  doc.text(invoice.shipTo?.address || "-", tableX + tableWidth / 2 + 8, shipY, { width: colWidth });
 
-  /* -------- PLACE / GSTIN (SMALL GAP) -------- */
   const infoStartY = Math.max(billY, shipY) + 14;
-
-  let infoY = infoStartY;
-
   doc.text(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
-    tableX + 8, infoY, { width: tableWidth - 16 });
+    tableX + 8, infoStartY, { width: tableWidth - 16 });
 
-  /* -------- TABLE HEIGHT -------- */
-  const infoHeight =
-   
-    doc.heightOfString(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`, { width: tableWidth - 16 });
+  const infoHeight = doc.heightOfString(
+    `Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
+    { width: tableWidth - 16 }
+  );
 
-  const row3Height =
-    infoStartY - row3Y +
-    infoHeight +
-    12;
+  /* ================= ITEMS TABLE ================= */
 
-  const tableHeight = row1Height + row2Height + row3Height;
+  let currentY = infoStartY + infoHeight + 20;
 
-  /* -------- TABLE BORDER -------- */
+  const columns = [
+    { label: "S.N.", w: 0.05 },
+    { label: "Location", w: 0.18 },
+    { label: "SAC/HSN", w: 0.14 },
+    { label: "Qty", w: 0.08 },
+    { label: "Note", w: 0.25 },
+    { label: "Rate (PM/SQFT)", w: 0.15 },
+    { label: "Amount", w: 0.15 },
+  ].map(c => ({ ...c, w: c.w * tableWidth }));
+
+  doc.font("Helvetica-Bold").fontSize(9);
+  let x = tableX;
+
+  columns.forEach(c => {
+    doc.rect(x, currentY, c.w, 24).stroke(COLORS.muted);
+    doc.text(c.label, x + 4, currentY + 7, {
+      width: c.w - 8,
+      align: "center",
+    });
+    x += c.w;
+  });
+
+  currentY += 24;
+  doc.font("Helvetica").fontSize(9);
+
+  (invoice.items || []).forEach((item: any, i: number) => {
+    const values = [
+      i + 1,
+      item.location || "-",
+      item.sacHsn || "-",
+      item.qty || "-",
+      item.note || "",
+      formatINR(cleanNumber(item.rate)),
+      formatINR(cleanNumber(item.amount)),
+    ];
+
+    let rowHeight = 0;
+    values.forEach((v, idx) => {
+      rowHeight = Math.max(
+        rowHeight,
+        doc.heightOfString(String(v), { width: columns[idx].w - 8 })
+      );
+    });
+
+    rowHeight += 12;
+
+    let cx = tableX;
+    values.forEach((v, idx) => {
+      doc.rect(cx, currentY, columns[idx].w, rowHeight).stroke(COLORS.muted);
+      doc.text(String(v), cx + 4, currentY + 6, {
+        width: columns[idx].w - 8,
+      });
+      cx += columns[idx].w;
+    });
+
+    currentY += rowHeight;
+  });
+
+  /* ================= TOTALS ================= */
+
+  currentY += 14;
+  doc.font("Helvetica-Bold").fontSize(9);
+  doc.text("Rupees in words:", tableX + 8, currentY);
+  doc.font("Helvetica").fontSize(9);
+  doc.text(invoice.amountInWords || "-", tableX + 120, currentY, {
+    width: tableWidth - 130,
+  });
+
+  currentY += 20;
+
+  const labelX = tableX + tableWidth - 220;
+  const valueX = tableX + tableWidth - 90;
+
+  [
+    ["Total Taxable Value:", invoice.totalTaxable],
+    ["IGST:", invoice.igst],
+    ["CGST:", invoice.cgst],
+    ["SGST:", invoice.sgst],
+  ].forEach(r => {
+    doc.text(r[0], labelX, currentY);
+    doc.text(formatINR(cleanNumber(r[1])), valueX, currentY, {
+      width: 80,
+      align: "right",
+    });
+    currentY += 14;
+  });
+
+  doc.font("Helvetica-Bold");
+  doc.moveTo(labelX, currentY + 2)
+     .lineTo(tableX + tableWidth - 8, currentY + 2)
+     .stroke(COLORS.muted);
+
+  currentY += 6;
+  doc.text("Grand Total", labelX, currentY);
+  doc.text(formatINR(cleanNumber(invoice.grandTotal)), valueX, currentY, {
+    width: 80,
+    align: "right",
+  });
+
+  /* -------- FINAL BORDER -------- */
+  const tableHeight = currentY - tableY + 16;
+
   doc.rect(tableX, tableY, tableWidth, tableHeight).stroke(COLORS.muted);
 
   doc.moveTo(tableX, tableY + row1Height)
@@ -188,4 +282,3 @@ export function streamInvoicePdf(
 
   doc.end();
 }
-
