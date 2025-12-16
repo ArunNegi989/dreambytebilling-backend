@@ -19,10 +19,6 @@ const formatINR = (n = 0) =>
     maximumFractionDigits: 2,
   })}`;
 
-/* ---- CLEAN NUMBER (FIXES ¹ ISSUE) ---- */
-const cleanNumber = (v: any) =>
-  Number(String(v ?? "").replace(/[^\d.]/g, "")) || 0;
-
 /* ---------------- MAIN PDF ---------------- */
 export function streamInvoicePdf(
   res: Response,
@@ -61,14 +57,24 @@ export function streamInvoicePdf(
   const headerStartY = 95;
   doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
-  [
+  const headerTexts = [
     `PAN No: ${invoice.header?.panNo || "-"}`,
     `Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`,
     `Category: ${invoice.header?.category || "-"}`,
     `CIN No: ${invoice.header?.office?.cin || "-"}`,
     `MSME No: ${invoice.header?.office?.msme || "-"}`,
     `Email: ${invoice.header?.office?.officeEmail || "-"}`,
-  ].forEach((t, i) => doc.text(t, left, headerStartY + i * 14));
+  ];
+
+  headerTexts.forEach((t, i) =>
+    doc.text(t, left, headerStartY + i * 14)
+  );
+
+  const maxTextWidth = Math.max(...headerTexts.map(t => doc.widthOfString(t)));
+  doc
+    .moveTo(left, headerStartY + 86)
+    .lineTo(left + maxTextWidth, headerStartY + 86)
+    .stroke(COLORS.gold);
 
   /* -------- LOGO -------- */
   const logoPath = path.join(process.cwd(), "public", "logo.png");
@@ -80,10 +86,10 @@ export function streamInvoicePdf(
     doc.image(logoPath, logoX, logoY, { width: logoWidth });
   }
 
-  /* -------- CONTACT DETAILS -------- */
+  /* -------- CONTACT DETAILS (RESTORED) -------- */
   const contactStartY = logoY + 125;
 
-  doc.font("Helvetica").fontSize(9);
+  doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
   doc.text(
     `Phone: ${invoice.header?.office?.personalPhone || "-"}`,
@@ -108,9 +114,10 @@ export function streamInvoicePdf(
     { width: logoWidth, align: "center" }
   );
 
-  doc.moveTo(logoX, contactStartY + 45)
-     .lineTo(logoX + logoWidth, contactStartY + 45)
-     .stroke(COLORS.gold);
+  doc
+    .moveTo(logoX, contactStartY + 45)
+    .lineTo(logoX + logoWidth, contactStartY + 45)
+    .stroke(COLORS.gold);
 
   /* ================= MAIN TABLE ================= */
 
@@ -132,10 +139,16 @@ export function streamInvoicePdf(
   doc.font("Helvetica").fontSize(9);
 
   doc.text(`Invoice No : ${invoice.invoiceNo || "-"}`, tableX + 8, row2Y);
-  doc.text(`Date of Invoice : ${invoice.dateOfInvoice || "-"}`,
-    tableX + tableWidth / 2 + 8, row2Y);
-  doc.text(`Place of Supply : ${invoice.placeOfSupply || "-"}`,
-    tableX + 8, row2Y + 14);
+  doc.text(
+    `Date of Invoice : ${invoice.dateOfInvoice || "-"}`,
+    tableX + tableWidth / 2 + 8,
+    row2Y
+  );
+  doc.text(
+    `Place of Supply : ${invoice.placeOfSupply || "-"}`,
+    tableX + 8,
+    row2Y + 14
+  );
 
   let row3Y = tableY + row1Height + row2Height + 10;
   doc.font("Helvetica-Bold").fontSize(9);
@@ -148,16 +161,20 @@ export function streamInvoicePdf(
   let shipY = row3Y + 16;
 
   doc.text(invoice.billedTo?.name || "-", tableX + 8, billY, { width: colWidth });
-  billY += doc.heightOfString(invoice.billedTo?.address || "-", { width: colWidth });
+  billY += doc.heightOfString(invoice.billedTo?.name || "-", { width: colWidth });
   doc.text(invoice.billedTo?.address || "-", tableX + 8, billY, { width: colWidth });
 
   doc.text(invoice.shipTo?.name || "-", tableX + tableWidth / 2 + 8, shipY, { width: colWidth });
-  shipY += doc.heightOfString(invoice.shipTo?.address || "-", { width: colWidth });
+  shipY += doc.heightOfString(invoice.shipTo?.name || "-", { width: colWidth });
   doc.text(invoice.shipTo?.address || "-", tableX + tableWidth / 2 + 8, shipY, { width: colWidth });
 
   const infoStartY = Math.max(billY, shipY) + 14;
-  doc.text(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
-    tableX + 8, infoStartY, { width: tableWidth - 16 });
+  doc.text(
+    `Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
+    tableX + 8,
+    infoStartY,
+    { width: tableWidth - 16 }
+  );
 
   const infoHeight = doc.heightOfString(
     `Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
@@ -200,15 +217,18 @@ export function streamInvoicePdf(
       item.sacHsn || "-",
       item.qty || "-",
       item.note || "",
-      formatINR(cleanNumber(item.rate)),
-      formatINR(cleanNumber(item.amount)),
+     formatINR(Number(item.rate) || 0),
+formatINR(Number(item.amount) || 0),
+
     ];
 
     let rowHeight = 0;
     values.forEach((v, idx) => {
       rowHeight = Math.max(
         rowHeight,
-        doc.heightOfString(String(v), { width: columns[idx].w - 8 })
+        doc.heightOfString(String(v), {
+          width: columns[idx].w - 8,
+        })
       );
     });
 
@@ -229,12 +249,17 @@ export function streamInvoicePdf(
   /* ================= TOTALS ================= */
 
   currentY += 14;
+
   doc.font("Helvetica-Bold").fontSize(9);
   doc.text("Rupees in words:", tableX + 8, currentY);
+
   doc.font("Helvetica").fontSize(9);
-  doc.text(invoice.amountInWords || "-", tableX + 120, currentY, {
-    width: tableWidth - 130,
-  });
+  doc.text(
+    invoice.amountInWords || "-",
+    tableX + 120,
+    currentY,
+    { width: tableWidth - 130 }
+  );
 
   currentY += 20;
 
@@ -242,13 +267,13 @@ export function streamInvoicePdf(
   const valueX = tableX + tableWidth - 90;
 
   [
-    ["Total Taxable Value:", invoice.totalTaxable],
-    ["IGST:", invoice.igst],
-    ["CGST:", invoice.cgst],
-    ["SGST:", invoice.sgst],
+    ["Total Taxable Value:", invoice.totals?.subtotal],
+    ["IGST:", invoice.totals?.igst],
+    ["CGST:", invoice.totals?.cgst],
+    ["SGST:", invoice.totals?.sgst],
   ].forEach(r => {
     doc.text(r[0], labelX, currentY);
-    doc.text(formatINR(cleanNumber(r[1])), valueX, currentY, {
+    doc.text(formatINR(r[1] || 0), valueX, currentY, {
       width: 80,
       align: "right",
     });
@@ -256,18 +281,21 @@ export function streamInvoicePdf(
   });
 
   doc.font("Helvetica-Bold");
-  doc.moveTo(labelX, currentY + 2)
-     .lineTo(tableX + tableWidth - 8, currentY + 2)
-     .stroke(COLORS.muted);
+  doc
+    .moveTo(labelX, currentY + 2)
+    .lineTo(tableX + tableWidth - 8, currentY + 2)
+    .stroke(COLORS.muted);
 
   currentY += 6;
   doc.text("Grand Total", labelX, currentY);
-  doc.text(formatINR(cleanNumber(invoice.grandTotal)), valueX, currentY, {
-    width: 80,
-    align: "right",
-  });
+  doc.text(
+    formatINR(invoice.totals?.grandTotal || 0),
+    valueX,
+    currentY,
+    { width: 80, align: "right" }
+  );
 
-  /* -------- FINAL BORDER -------- */
+  /* -------- FINAL BORDER (AUTO-FIT) -------- */
   const tableHeight = currentY - tableY + 16;
 
   doc.rect(tableX, tableY, tableWidth, tableHeight).stroke(COLORS.muted);
