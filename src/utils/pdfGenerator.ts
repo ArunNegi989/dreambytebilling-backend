@@ -19,39 +19,7 @@ const formatINR = (n = 0) =>
     maximumFractionDigits: 2,
   })}`;
 
-function numberToWordsIndian(n: number) {
-  const a = [
-    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
-    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen",
-    "Sixteen", "Seventeen", "Eighteen", "Nineteen",
-  ];
-  const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-
-  const two = (num: number) =>
-    num < 20 ? a[num] : b[Math.floor(num / 10)] + (num % 10 ? " " + a[num % 10] : "");
-
-  const three = (num: number) =>
-    Math.floor(num / 100)
-      ? a[Math.floor(num / 100)] + " Hundred " + two(num % 100)
-      : two(num);
-
-  let str = "";
-  if (Math.floor(n / 10000000)) str += three(Math.floor(n / 10000000)) + " Crore ";
-  if (Math.floor((n / 100000) % 100)) str += three(Math.floor((n / 100000) % 100)) + " Lakh ";
-  if (Math.floor((n / 1000) % 100)) str += three(Math.floor((n / 1000) % 100)) + " Thousand ";
-  if (n % 1000) str += three(n % 1000);
-
-  return str.trim();
-}
-
-function resolveImage(p?: string) {
-  if (!p) return undefined;
-  if (fs.existsSync(p)) return p;
-  const full = path.join(process.cwd(), p);
-  if (fs.existsSync(full)) return full;
-  return undefined;
-}
-
+/* ---------------- MAIN PDF ---------------- */
 /* ---------------- MAIN PDF ---------------- */
 export function streamInvoicePdf(
   res: Response,
@@ -73,58 +41,41 @@ export function streamInvoicePdf(
   doc.rect(0, 0, W, H).fill(COLORS.bg);
 
   /* -------- TOP DESIGN -------- */
-  doc.fillColor(COLORS.gold).polygon([420, 0], [595, 0], [595, 110]).fill();
-  doc.fillColor(COLORS.darkGold).polygon([500, 0], [595, 0], [595, 65]).fill();
-  doc.fillColor("#333").polygon([470, 0], [595, 0], [595, 35]).fill();
+  doc.fillColor(COLORS.gold).polygon([420,0],[595,0],[595,110]).fill();
+  doc.fillColor(COLORS.darkGold).polygon([500,0],[595,0],[595,65]).fill();
+  doc.fillColor("#333").polygon([470,0],[595,0],[595,35]).fill();
 
-/* -------- HEADER -------- */
-doc
-  .fillColor(COLORS.darkGold)
-  .font("Helvetica-Bold")
-  .fontSize(18)
-  .text("DREAMBYTE SOLUTION (OPC) PVT. LTD.", left, 38, {
-    width: 360,
-  });
+  /* -------- HEADER -------- */
+  doc.fillColor(COLORS.darkGold)
+    .font("Helvetica-Bold")
+    .fontSize(18)
+    .text("DREAMBYTE SOLUTION (OPC) PVT. LTD.", left, 38, { width: 360 });
 
-doc.moveTo(left, 66).lineTo(left + 360, 66).stroke(COLORS.gold);
+  doc.moveTo(left, 66).lineTo(left + 360, 66).stroke(COLORS.gold);
 
- /* -------- HEADER DETAILS -------- */
- const headerStartY = 95;
+  /* -------- HEADER DETAILS -------- */
+  const headerStartY = 95;
+  doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
-doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
+  const headerTexts = [
+    `PAN No: ${invoice.header?.panNo || "-"}`,
+    `Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`,
+    `Category: ${invoice.header?.category || "-"}`,
+    `CIN No: ${invoice.header?.office?.cin || "-"}`,
+    `MSME No: ${invoice.header?.office?.msme || "-"}`,
+    `Email: ${invoice.header?.office?.officeEmail || "-"}`,
+  ];
 
-const headerTexts = [
-  `PAN No: ${invoice.header?.panNo || "-"}`,
-  `Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`,
-  `Category: ${invoice.header?.category || "-"}`,
-  `CIN No: ${invoice.header?.office?.cin || "-"}`,
-  `MSME No: ${invoice.header?.office?.msme || "-"}`,
-  `Email: ${invoice.header?.office?.officeEmail || "-"}`, // ✅ ADDED
-];
+  headerTexts.forEach((t, i) =>
+    doc.text(t, left, headerStartY + i * 14)
+  );
 
-doc.text(headerTexts[0], left, headerStartY);
-doc.text(headerTexts[1], left, headerStartY + 14);
-doc.text(headerTexts[2], left, headerStartY + 28);
-doc.text(headerTexts[3], left, headerStartY + 42);
-doc.text(headerTexts[4], left, headerStartY + 56);
-doc.text(headerTexts[5], left, headerStartY + 70); // 👈 Email line
+  const maxTextWidth = Math.max(...headerTexts.map(t => doc.widthOfString(t)));
+  doc.moveTo(left, headerStartY + 86)
+     .lineTo(left + maxTextWidth, headerStartY + 86)
+     .stroke(COLORS.gold);
 
-  /* -------- DYNAMIC LINE (TEXT WIDTH ONLY) -------- */
-doc.font("Helvetica").fontSize(9);
-
-const maxTextWidth = Math.max(
-  ...headerTexts.map(t => doc.widthOfString(t))
-);
-
-doc
-  .save()
-  .strokeColor(COLORS.gold)
-  .lineWidth(1)
-  .moveTo(left, headerStartY + 86)
-  .lineTo(left + maxTextWidth, headerStartY + 86)
-  .stroke()
-  .restore();
-/* -------- LOGO + CONTACT DETAILS (RIGHT SIDE) -------- */
+  /* -------- LOGO + CONTACT -------- */
   const logoPath = path.join(process.cwd(), "public", "logo.png");
   const logoX = right - 180;
   const logoY = 10;
@@ -134,157 +85,107 @@ doc
     doc.image(logoPath, logoX, logoY, { width: logoWidth });
   }
 
-  /* -------- CONTACT DETAILS BELOW LOGO -------- */
-  const logoHeight = 80; // approx
-  const contactStartY = logoY + logoHeight + 45;
+  const contactStartY = logoY + 125;
 
-  doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
+  doc.text(`Phone: ${invoice.header?.office?.personalPhone || "-"}`,
+    logoX, contactStartY, { width: logoWidth, align: "center" });
 
-  /* Phone 1 */
-  doc.text(
-    `Phone: ${invoice.header?.office?.personalPhone || "-"}`,
-    logoX,
-    contactStartY,
-    { width: logoWidth, align: "center" }
-  );
-
-  /* Phone 2 */
   if (invoice.header?.office?.alternatePhone) {
-    doc.text(
-      `Phone: ${invoice.header.office.alternatePhone}`,
-      logoX,
-      contactStartY + 14,
-      { width: logoWidth, align: "center" }
-    );
+    doc.text(`Phone: ${invoice.header.office.alternatePhone}`,
+      logoX, contactStartY + 14, { width: logoWidth, align: "center" });
   }
 
+  doc.text(invoice.header?.office?.officeAddress || "-",
+    logoX, contactStartY + 28, { width: logoWidth, align: "center" });
 
-  /* Address */
-  doc.text(
-    invoice.header?.office?.officeAddress || "-",
-    logoX,
-    contactStartY + 28,
-    { width: logoWidth, align: "center" }
-  );
+  doc.moveTo(logoX, contactStartY + 45)
+     .lineTo(logoX + logoWidth, contactStartY + 45)
+     .stroke(COLORS.gold);
 
-  /* -------- LINE BELOW ADDRESS -------- */
-  doc
-    .save()
-    .strokeColor(COLORS.gold)
-    .lineWidth(1)
-    .moveTo(logoX, contactStartY + 45)
-    .lineTo(logoX + logoWidth, contactStartY + 45)
-    .stroke()
-    .restore();
+  /* ================= TABLE ================= */
 
-  /* -------- META INFO -------- */
-  let y = 215;
-  doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
+  const tableX = left;
+  const tableY = 190;
+  const tableWidth = right - left;
+  const colWidth = tableWidth / 2 - 16;
 
-  doc.text(`IRN: ${invoice.office?.irn || "-"}`, left, y);
-  doc.text(`Ack No: ${invoice.office?.ackNo || "-"}`, left, y + 14);
-  doc.text(`Ack Date: ${invoice.office?.ackDate || "-"}`, left, y + 28);
+  const row1Height = 28;
+  const row2Height = 38;
 
-  doc.text(`Place of Supply: ${invoice.office?.placeOfSupply || "-"}`, right - 260, y);
-  doc.text(`Reverse Charge: ${invoice.office?.reverseCharge || "-"}`, right - 260, y + 14);
-  doc.text(`Client Order No: ${invoice.office?.clientOrderNo || "-"}`, right - 260, y + 28);
-  doc.text(`Order Date: ${invoice.office?.orderDate || "-"}`, right - 260, y + 42);
-
-  /* -------- BILL & SHIP -------- */
-  y += 70;
-  doc.font("Helvetica-Bold").fontSize(11);
-  doc.text("BILL TO", left, y);
-  doc.text("SHIP TO", right - 200, y);
-
-  y += 16;
-  doc.font("Helvetica").fontSize(10);
-  doc.text(invoice.billedTo?.name || "-", left, y);
-  doc.text(invoice.billedTo?.address || "-", left, y + 14, { width: 220 });
-
-  doc.text(invoice.shipTo?.name || "-", right - 200, y);
-  doc.text(invoice.shipTo?.address || "-", right - 200, y + 14, { width: 200 });
-
-  /* -------- CAMPAIGN -------- */
-  y += 60;
-  doc.font("Helvetica-Bold").text("Campaign Details", left, y);
-  y += 14;
-  doc.font("Helvetica").fontSize(9);
-  doc.text(`Name: ${invoice.campaign?.name || "-"}`, left, y);
-  doc.text(
-    `Period: ${invoice.campaign?.start || "-"} to ${invoice.campaign?.end || "-"}`,
-    left,
-    y + 14
-  );
-  doc.text(`Party PAN: ${invoice.partyPan || "-"}`, right - 260, y);
-  doc.text(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`, right - 260, y + 14);
-
-  /* -------- ITEMS TABLE -------- */
-  y += 50;
+  /* -------- ROW 1 -------- */
   doc.font("Helvetica-Bold").fontSize(10);
-  doc.text("Description", left, y);
-  doc.text("Qty", left + 240, y);
-  doc.text("Rate", left + 300, y);
-  doc.text("Amount", right - 80, y, { align: "right" });
+ 
 
-  y += 10;
-  doc.moveTo(left, y).lineTo(right, y).stroke(COLORS.gold);
-  y += 8;
-
-  doc.font("Helvetica").fontSize(9);
-  (invoice.items || []).forEach((item: any) => {
-    doc.text(item.specification || "-", left, y, { width: 220 });
-    doc.text(item.qty || 0, left + 240, y);
-    doc.text(formatINR(item.rate), left + 300, y);
-    doc.text(formatINR(item.amount), right - 80, y, { align: "right" });
-    y += 18;
+  doc.fontSize(11);
+  doc.text("TAX INVOICE", tableX, tableY + 7, {
+    width: tableWidth,
+    align: "center",
   });
 
-  /* -------- TOTALS -------- */
-  y += 10;
-  doc.font("Helvetica").fontSize(10);
-  doc.text("Sub Total", right - 200, y);
-  doc.text(formatINR(invoice.totals?.subtotal), right - 80, y, { align: "right" });
-
-  y += 14;
-  doc.text("CGST", right - 200, y);
-  doc.text(formatINR(invoice.totals?.cgst), right - 80, y, { align: "right" });
-
-  y += 14;
-  doc.text("SGST", right - 200, y);
-  doc.text(formatINR(invoice.totals?.sgst), right - 80, y, { align: "right" });
-
-  y += 18;
-  doc.font("Helvetica-Bold");
-  doc.text("Grand Total", right - 200, y);
-  doc.text(formatINR(invoice.totals?.grandTotal), right - 80, y, { align: "right" });
-
-  /* -------- AMOUNT IN WORDS -------- */
-  y += 20;
+  /* -------- ROW 2 -------- */
+  let row2Y = tableY + row1Height + 8;
   doc.font("Helvetica").fontSize(9);
-  doc.text(
-    `Amount in Words: ${
-      invoice.totals?.amountInWords ||
-      numberToWordsIndian(invoice.totals?.grandTotal)
-    }`,
-    left,
-    y,
-    { width: 380 }
-  );
 
-  /* -------- BANK DETAILS -------- */
-  y += 40;
-  doc.font("Helvetica-Bold").text("Bank Details", left, y);
-  y += 14;
+  doc.text(`Invoice No : ${invoice.invoiceNo || "-"}`, tableX + 8, row2Y);
+  doc.text(`Date of Invoice : ${invoice.dateOfInvoice || "-"}`,
+    tableX + tableWidth / 2 + 8, row2Y);
+
+  doc.text(`Place of Supply : ${invoice.placeOfSupply || "-"}`,
+    tableX + 8, row2Y + 14);
+
+  /* -------- ROW 3 -------- */
+  let row3Y = tableY + row1Height + row2Height + 10;
+
+  doc.font("Helvetica-Bold").fontSize(9);
+  doc.text("BILLED TO:", tableX + 8, row3Y);
+  doc.text("SHIP TO:", tableX + tableWidth / 2 + 8, row3Y);
+
   doc.font("Helvetica").fontSize(9);
-  doc.text(`Bank Name: ${invoice.bank?.bankName || "-"}`, left, y);
-  doc.text(`Account No: ${invoice.bank?.accountNo || "-"}`, left, y + 14);
-  doc.text(`IFSC: ${invoice.bank?.ifsc || "-"}`, left, y + 28);
-  doc.text(`Branch: ${invoice.bank?.branch || "-"}`, left, y + 42);
 
-  /* -------- FOOTER -------- */
-  doc.fontSize(8).fillColor(COLORS.muted);
-  doc.text(invoice.footerAddress || "", left, H - 80, { width: 350 });
-  doc.text(`Notes: ${invoice.notes || ""}`, left, H - 50, { width: 350 });
+  let billY = row3Y + 16;
+  let shipY = row3Y + 16;
+
+  doc.text(invoice.billedTo?.name || "-", tableX + 8, billY, { width: colWidth });
+  billY += doc.heightOfString(invoice.billedTo?.name || "-", { width: colWidth });
+  doc.text(invoice.billedTo?.address || "-", tableX + 8, billY, { width: colWidth });
+  billY += doc.heightOfString(invoice.billedTo?.address || "-", { width: colWidth });
+
+  doc.text(invoice.shipTo?.name || "-", tableX + tableWidth / 2 + 8, shipY, { width: colWidth });
+  shipY += doc.heightOfString(invoice.shipTo?.name || "-", { width: colWidth });
+  doc.text(invoice.shipTo?.address || "-", tableX + tableWidth / 2 + 8, shipY, { width: colWidth });
+  shipY += doc.heightOfString(invoice.shipTo?.address || "-", { width: colWidth });
+
+  /* -------- PLACE / GSTIN (SMALL GAP) -------- */
+  const infoStartY = Math.max(billY, shipY) + 14;
+
+  let infoY = infoStartY;
+
+  doc.text(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
+    tableX + 8, infoY, { width: tableWidth - 16 });
+
+  /* -------- TABLE HEIGHT -------- */
+  const infoHeight =
+   
+    doc.heightOfString(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`, { width: tableWidth - 16 });
+
+  const row3Height =
+    infoStartY - row3Y +
+    infoHeight +
+    12;
+
+  const tableHeight = row1Height + row2Height + row3Height;
+
+  /* -------- TABLE BORDER -------- */
+  doc.rect(tableX, tableY, tableWidth, tableHeight).stroke(COLORS.muted);
+
+  doc.moveTo(tableX, tableY + row1Height)
+     .lineTo(tableX + tableWidth, tableY + row1Height)
+     .stroke(COLORS.muted);
+
+  doc.moveTo(tableX, tableY + row1Height + row2Height)
+     .lineTo(tableX + tableWidth, tableY + row1Height + row2Height)
+     .stroke(COLORS.muted);
 
   doc.end();
 }
+
