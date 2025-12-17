@@ -63,10 +63,6 @@ export interface IInvoice extends Document {
     branch?: string;
     pincode?: string;
   };
-
-  /** Authorized Signature (Base64 / URL) */
-  signature?: string;
-
   createdAt: Date;
   updatedAt: Date;
 }
@@ -134,10 +130,7 @@ const InvoiceSchema = new Schema<IInvoice>(
       pincode: String,
     },
 
-    signature: {
-      type: String,
-      default: "",
-    },
+   
   },
   { timestamps: true }
 );

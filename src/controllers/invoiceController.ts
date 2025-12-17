@@ -36,7 +36,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       amountInWords: payload.amountInWords,
       bank: payload.bank,
 
-      signature: payload.signature || "",
+     
     });
 
     const savedInvoice = await invoice.save();
