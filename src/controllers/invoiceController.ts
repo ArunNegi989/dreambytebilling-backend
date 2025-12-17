@@ -1,21 +1,23 @@
 import { Request, Response } from "express";
 import Invoice from "../models/Invoice.js";
 import { streamInvoicePdf } from "../utils/pdfGenerator.js";
+import { generateInvoiceNumber } from "../utils/generateInvoiceNumber.js";
+import { getFinancialYear } from "../utils/getFinancialYear.js";
+import InvoiceCounter from "../models/InvoiceCounter.js";
 
 /* ---------------- CREATE INVOICE ---------------- */
 export const createInvoice = async (req: Request, res: Response) => {
   try {
     const payload = req.body;
 
-    if (!payload?.invoiceNo) {
-      return res.status(400).json({ error: "invoiceNo is required" });
-    }
+    // 🔥 AUTO-GENERATE INVOICE NUMBER
+    const invoiceNo = await generateInvoiceNumber();
 
     const invoice = new Invoice({
       header: payload.header || {},
 
       gstin: payload.gstin,
-      invoiceNo: payload.invoiceNo,
+      invoiceNo, // ✅ generated here
       dateOfInvoice: payload.dateOfInvoice,
       placeOfSupply: payload.placeOfSupply,
 
@@ -35,11 +37,10 @@ export const createInvoice = async (req: Request, res: Response) => {
 
       amountInWords: payload.amountInWords,
       bank: payload.bank,
-
-     
     });
 
     const savedInvoice = await invoice.save();
+
     res.status(201).json(savedInvoice);
   } catch (error) {
     console.error("Create Invoice Error:", error);
@@ -65,9 +66,11 @@ export const getInvoices = async (_req: Request, res: Response) => {
 export const getInvoice = async (req: Request, res: Response) => {
   try {
     const invoice = await Invoice.findById(req.params.id).lean();
+
     if (!invoice) {
       return res.status(404).json({ error: "Invoice not found" });
     }
+
     res.json(invoice);
   } catch (error) {
     console.error("Get Invoice Error:", error);
@@ -79,6 +82,7 @@ export const getInvoice = async (req: Request, res: Response) => {
 export const generateInvoicePdf = async (req: Request, res: Response) => {
   try {
     const invoiceDoc = await Invoice.findById(req.params.id);
+
     if (!invoiceDoc) {
       return res.status(404).json({ error: "Invoice not found" });
     }
@@ -93,6 +97,21 @@ export const generateInvoicePdf = async (req: Request, res: Response) => {
     if (!res.headersSent) {
       res.status(500).json({ error: "Failed to generate PDF" });
     }
+  }
+};
+export const getNextInvoiceNumber = async (_req: Request, res: Response) => {
+  try {
+    const fy = getFinancialYear(); // eg: 2425
+
+    const counter = await InvoiceCounter.findOne({ financialYear: fy });
+    const nextSeq = counter ? counter.seq + 1 : 1;
+
+    const invoiceNo = `DBS-${fy}-${String(nextSeq).padStart(3, "0")}`;
+
+    res.json({ invoiceNo });
+  } catch (error) {
+    console.error("Next Invoice No Error:", error);
+    res.status(500).json({ error: "Failed to get invoice number" });
   }
 };
 
