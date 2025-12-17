@@ -58,7 +58,10 @@ function drawHeader(
     .fontSize(isFirstPage ? 18 : 15)
     .text(COMPANY_NAME, LEFT, 38, { width: 360 });
 
-  doc.moveTo(LEFT, 66).lineTo(LEFT + 360, 66).stroke(COLORS.gold);
+  doc
+    .moveTo(LEFT, 66)
+    .lineTo(LEFT + 360, 66)
+    .stroke(COLORS.gold);
 
   /* =====================================================
      ❌ STOP HERE FOR NEXT PAGES
@@ -78,12 +81,10 @@ function drawHeader(
     `Email: ${invoice.header?.office?.officeEmail || "-"}`,
   ];
 
-  headerTexts.forEach((t, i) =>
-    doc.text(t, LEFT, headerStartY + i * 14)
-  );
+  headerTexts.forEach((t, i) => doc.text(t, LEFT, headerStartY + i * 14));
 
   const maxTextWidth = Math.max(
-    ...headerTexts.map(t => doc.widthOfString(t))
+    ...headerTexts.map((t) => doc.widthOfString(t))
   );
 
   doc
@@ -110,12 +111,10 @@ function drawHeader(
   );
 
   if (invoice.header?.office?.alternatePhone) {
-    doc.text(
-      invoice.header.office.alternatePhone,
-      logoX,
-      contactStartY + 14,
-      { width: 180, align: "center" }
-    );
+    doc.text(invoice.header.office.alternatePhone, logoX, contactStartY + 14, {
+      width: 180,
+      align: "center",
+    });
   }
 
   doc.text(
@@ -129,10 +128,7 @@ function drawHeader(
     .moveTo(logoX, contactStartY + 65)
     .lineTo(logoX + 180, contactStartY + 65)
     .stroke(COLORS.gold);
-    doc
-  .font("Helvetica")
-  .fontSize(9)
-  .fillColor(COLORS.text);
+  doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 }
 
 /* ---------------- DRAW INVOICE INFO TABLE ---------------- */
@@ -149,12 +145,11 @@ function drawInvoiceInfo(doc: PDFKit.PDFDocument, invoice: any) {
     width: tableWidth,
     align: "center",
   });
-// ---- line below TAX INVOICE ----
-doc
-  .moveTo(tableX, tableY + 26)
-  .lineTo(tableX + tableWidth, tableY + 26)
-  .stroke(COLORS.muted);
-
+  // ---- line below TAX INVOICE ----
+  doc
+    .moveTo(tableX, tableY + 26)
+    .lineTo(tableX + tableWidth, tableY + 26)
+    .stroke(COLORS.muted);
 
   let y = tableY + 30;
 
@@ -175,16 +170,15 @@ doc
     tableX + padding,
     y
   );
-y += 12;
+  y += 12;
 
-// ---- line below Place of Supply ----
-doc
-  .moveTo(tableX, y)
-  .lineTo(tableX + tableWidth, y)
-  .stroke(COLORS.muted);
+  // ---- line below Place of Supply ----
+  doc
+    .moveTo(tableX, y)
+    .lineTo(tableX + tableWidth, y)
+    .stroke(COLORS.muted);
 
-
-y += 10;
+  y += 10;
 
   y += 22;
 
@@ -211,8 +205,7 @@ y += 10;
 
   // ---- SHIP TO ----
   const shipText =
-    `${invoice.shipTo?.name || "-"}\n` +
-    `${invoice.shipTo?.address || "-"}`;
+    `${invoice.shipTo?.name || "-"}\n` + `${invoice.shipTo?.address || "-"}`;
 
   const shipHeight = doc.heightOfString(shipText, {
     width: tableWidth / 2 - padding * 2,
@@ -235,24 +228,15 @@ y += 10;
   );
 
   y +=
-    doc.heightOfString(
-      `Receiver GSTIN: ${invoice.receiverGstin || "-"}`,
-      { width: tableWidth - padding * 2 }
-    ) + 10;
+    doc.heightOfString(`Receiver GSTIN: ${invoice.receiverGstin || "-"}`, {
+      width: tableWidth - padding * 2,
+    }) + 10;
 
   // ---- 🔥 OUTER BORDER (THIS WAS MISSING) ----
-  doc
-    .rect(
-      tableX,
-      tableY,
-      tableWidth,
-      y - tableY + 6
-    )
-    .stroke(COLORS.muted);
+  doc.rect(tableX, tableY, tableWidth, y - tableY + 6).stroke(COLORS.muted);
 
   return y + 12;
 }
-
 
 /* ---------------- DRAW ITEMS TABLE HEADER ---------------- */
 function drawItemsTableHeader(doc: PDFKit.PDFDocument, startY: number) {
@@ -267,12 +251,12 @@ function drawItemsTableHeader(doc: PDFKit.PDFDocument, startY: number) {
     { label: "Note", w: 0.25 },
     { label: "Rate (PM/SQFT)", w: 0.15 },
     { label: "Amount", w: 0.15 },
-  ].map(c => ({ ...c, w: c.w * tableWidth }));
+  ].map((c) => ({ ...c, w: c.w * tableWidth }));
 
   doc.font("Helvetica-Bold").fontSize(9);
   let x = tableX;
 
-  columns.forEach(c => {
+  columns.forEach((c) => {
     doc.rect(x, startY, c.w, 24).stroke(COLORS.muted);
     doc.text(c.label, x + 4, startY + 7, {
       width: c.w - 8,
@@ -318,7 +302,7 @@ function drawItemRow(
 
   let cx = tableX;
   doc.font("Helvetica").fontSize(9);
-  
+
   values.forEach((v, idx) => {
     doc.rect(cx, startY, columns[idx].w, rowHeight).stroke(COLORS.muted);
     doc.text(String(v), cx + 4, startY + 6, {
@@ -331,11 +315,7 @@ function drawItemRow(
 }
 
 /* ---------------- DRAW TOTALS ---------------- */
-function drawTotals(
-  doc: PDFKit.PDFDocument,
-  invoice: any,
-  startY: number
-) {
+function drawTotals(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
   const tableX = LEFT;
   const tableWidth = RIGHT - LEFT;
 
@@ -413,19 +393,12 @@ function drawTotals(
   const boxHeight = y + wordsHeight + 10 - startY;
 
   // -------- OUTER BOX --------
-  doc
-    .rect(tableX, startY, tableWidth, boxHeight)
-    .stroke(COLORS.muted);
+  doc.rect(tableX, startY, tableWidth, boxHeight).stroke(COLORS.muted);
 
   return startY + boxHeight + 10;
 }
 
-
-function getItemRowHeight(
-  doc: PDFKit.PDFDocument,
-  item: any,
-  columns: any[]
-) {
+function getItemRowHeight(doc: PDFKit.PDFDocument, item: any, columns: any[]) {
   const values = [
     String(item.location || "-"),
     String(item.sacHsn || "-"),
@@ -449,14 +422,12 @@ function getItemRowHeight(
   return height + 12;
 }
 
- 
 /* ---------------- DRAW FOOTER (BANK, TERMS, SIGNATURE) ---------------- */
 function drawFooter(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
   const tableX = LEFT;
   const tableWidth = RIGHT - LEFT;
 
   let currentY = startY;
-
 
   currentY +=
     doc.heightOfString(invoice.amountInWords || "-", {
@@ -570,20 +541,15 @@ export function streamInvoicePdf(
     }
 
     drawHeader(doc, invoice, isFirstPage);
-    
 
     let currentY: number;
 
     if (isFirstPage) {
-    currentY = drawInvoiceInfo(doc, invoice);
-  } else {
-    currentY = 100;
-  }
-  doc
-  .font("Helvetica")
-  .fontSize(9)
-  .fillColor(COLORS.text);
-
+      currentY = drawInvoiceInfo(doc, invoice);
+    } else {
+      currentY = 100;
+    }
+    doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
     const { columns, headerHeight } = drawItemsTableHeader(doc, currentY);
     currentY += headerHeight;
@@ -596,21 +562,19 @@ export function streamInvoicePdf(
       if (currentY + rowHeight > PAGE_BOTTOM) break;
 
       // draw row ONLY if it fits
-drawItemRow(doc, item, itemIndex, currentY, columns);
+      drawItemRow(doc, item, itemIndex, currentY, columns);
 
-// move Y only after draw
-currentY += rowHeight;
+      // move Y only after draw
+      currentY += rowHeight;
 
-// increment index only after successful draw
-itemIndex++;
-
+      // increment index only after successful draw
+      itemIndex++;
     }
 
     // ✅ ONLY LAST PAGE GETS TOTALS + FOOTER
     if (itemIndex >= items.length) {
       currentY = drawTotals(doc, invoice, currentY);
       currentY = drawFooter(doc, invoice, currentY);
-
     }
 
     isFirstPage = false;
