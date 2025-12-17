@@ -27,11 +27,7 @@ export interface IInvoice extends Document {
     };
   };
 
-  irn?: string;
-  ackNo?: string;
-  ackDate?: string;
   gstin?: string;
-
   invoiceNo: string;
   dateOfInvoice?: string;
   placeOfSupply?: string;
@@ -46,7 +42,6 @@ export interface IInvoice extends Document {
     address?: string;
   };
 
-  partyPan?: string;
   receiverGstin?: string;
 
   items: IItem[];
@@ -68,6 +63,9 @@ export interface IInvoice extends Document {
     branch?: string;
     pincode?: string;
   };
+
+  /** Authorized Signature (Base64 / URL) */
+  signature?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -95,9 +93,6 @@ const InvoiceSchema = new Schema<IInvoice>(
       default: {},
     },
 
-    irn: String,
-    ackNo: String,
-    ackDate: String,
     gstin: String,
 
     invoiceNo: { type: String, required: true, index: true },
@@ -114,10 +109,12 @@ const InvoiceSchema = new Schema<IInvoice>(
       address: String,
     },
 
-    partyPan: String,
     receiverGstin: String,
 
-    items: { type: [ItemSchema], default: [] },
+    items: {
+      type: [ItemSchema],
+      default: [],
+    },
 
     totals: {
       subtotal: { type: Number, default: 0 },
@@ -135,6 +132,11 @@ const InvoiceSchema = new Schema<IInvoice>(
       ifsc: String,
       branch: String,
       pincode: String,
+    },
+
+    signature: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true }

@@ -302,8 +302,6 @@ export function streamInvoicePdf(
       width: tableWidth - 130,
     }) + 10;
 
-    /* -------- BANK DETAILS (ONE BOX ROW) -------- */
-
 /* -------- BANK DETAILS (ONE BOX ROW - BIGGER FONT) -------- */
 
 const bankText = [
