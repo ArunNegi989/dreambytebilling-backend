@@ -2,6 +2,8 @@ import PDFDocument from "pdfkit";
 import { Response } from "express";
 import fs from "fs";
 import path from "path";
+import os from "os";
+
 
 /* ---------------- COLORS ---------------- */
 const COLORS = {
@@ -14,10 +16,10 @@ const COLORS = {
 
 /* ---------------- HELPERS ---------------- */
 const formatINR = (n = 0) =>
-  `₹${Number(n).toLocaleString("en-IN", {
+  Number(n).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })}`;
+  });
 
 /* ---------------- MAIN PDF ---------------- */
 export function streamInvoicePdf(
@@ -334,6 +336,100 @@ doc.text(
 );
 
 currentY += bankHeight + 6;
+
+/* ================= TERMS & SIGNATURE (BOX STYLE LIKE IMAGE) ================= */
+
+currentY += 8;
+
+const boxHeight = 120;
+const leftWidth = tableWidth * 0.6;
+const rightWidth = tableWidth - leftWidth;
+const midX = tableX + leftWidth;
+
+/* -------- OUTER BOX -------- */
+doc.rect(tableX, currentY, tableWidth, boxHeight).stroke(COLORS.muted);
+
+/* -------- VERTICAL DIVIDER -------- */
+doc
+  .moveTo(midX, currentY)
+  .lineTo(midX, currentY + boxHeight)
+  .stroke(COLORS.muted);
+
+/* -------- LEFT : TERMS & CONDITIONS -------- */
+doc.font("Helvetica-Bold").fontSize(9);
+doc.text("Terms & Conditions", tableX + 6, currentY + 6);
+
+doc.font("Helvetica").fontSize(8.5);
+
+const terms = [
+  "1. All payments to be made by Payee A/c Cheque/Draft in favour of",
+  "   Media 24x7 Advertising Pvt. Ltd.",
+  "2. No dispute of any nature whatsoever will be valid unless brought to our notice within",
+  "   7 days of submission of the bill.",
+  "3. Interest @18% p.a. will be charged if the payment is not made within the stipulated time.",
+  "4. All disputes are subject to Delhi Jurisdiction only.",
+].join("\n");
+
+doc.text(
+  terms,
+  tableX + 6,
+  currentY + 20,
+  { width: leftWidth - 12 }
+);
+
+const signLineY = currentY + 46; // gap after text
+
+doc
+  .moveTo(tableX + leftWidth + 210, signLineY)
+  .lineTo(midX - 0, signLineY)
+  .stroke(COLORS.muted);
+
+/* -------- RIGHT : RECEIVER SIGNATURE -------- */
+doc.font("Helvetica-Bold").fontSize(9);
+doc.text(
+  "Receiver's Signature:",
+  midX + 6,
+  currentY + 6
+);
+
+/* -------- COMPANY NAME -------- */
+doc.font("Helvetica-Bold").fontSize(9);
+doc.text(
+  "DREAMBYTE SOLUTION (OPC) PVT. LTD.",
+  midX + 6,
+  currentY + 52,
+  { width: rightWidth - 12, align: "center" }
+);
+
+/* -------- AUTHORISED SIGN IMAGE (FROM PUBLIC FOLDER) -------- */
+const signPath = path.join(process.cwd(), "public", "sign.png");
+
+if (fs.existsSync(signPath)) {
+  const signWidth = 140;     // 🔼 size increased
+  const signHeight = 60;     // 🔼 force height (important)
+
+  const signX = midX + (rightWidth - signWidth) / 2;
+  const signY = currentY + 55; // 🔼 thoda upar laaya
+
+  doc.image(signPath, signX, signY, {
+    width: signWidth,
+    height: signHeight,
+  });
+}
+
+/* -------- AUTHORISED SIGN TEXT -------- */
+doc.font("Helvetica").fontSize(8.5);
+doc.text(
+  "Authorised Signatory",
+  midX + 6,
+  currentY + boxHeight - 12,
+  { width: rightWidth - 12, align: "center" }
+);
+
+
+/* -------- MOVE Y FOR FINAL BORDER -------- */
+currentY += boxHeight + 10;
+
 
 
   /* -------- FINAL BORDER (AUTO-FIT) -------- */
