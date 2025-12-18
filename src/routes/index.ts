@@ -1,13 +1,12 @@
-// src/routes/index.ts
 import { Router } from "express";
-import authRoutes from "./authRoutes.js"; // note .js
-import invoiceRoutes from "./invoiceRoutes.js"
+import authRoutes from "./authRoutes.js";
+import invoiceRoutes from "./invoiceRoutes.js";
+import quotationRoutes from "./quotation.routes.js";
 
 const router = Router();
 
 router.use("/auth", authRoutes);
-router.use("/invoice" ,invoiceRoutes )
-
-// add other groups here: router.use("/invoices", invoiceRoutes);
+router.use("/invoice", invoiceRoutes);
+router.use("/quotation", quotationRoutes); // ✅
 
 export default router;
