@@ -3,7 +3,7 @@ import mongoose, { Document, Schema } from "mongoose";
 /* ---------------- ITEM TYPE ---------------- */
 export interface IItem {
   id: string;
-  location: string;
+  Services: string;
   sacHsn: string;
   specification: string;
   qty: number;
@@ -71,7 +71,7 @@ export interface IInvoice extends Document {
 const ItemSchema = new Schema<IItem>(
   {
     id: { type: String, required: true },
-    location: { type: String, default: "" },
+    Services: { type: String, default: "" },
     sacHsn: { type: String, default: "" },
     specification: { type: String, default: "" },
     qty: { type: Number, default: 1 },

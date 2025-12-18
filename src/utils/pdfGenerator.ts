@@ -245,7 +245,7 @@ function drawItemsTableHeader(doc: PDFKit.PDFDocument, startY: number) {
 
   const columns = [
     { label: "S.N.", w: 0.05 },
-    { label: "Location", w: 0.18 },
+    { label: "Services", w: 0.18 },
     { label: "SAC/HSN", w: 0.14 },
     { label: "Qty", w: 0.08 },
     { label: "Note", w: 0.25 },
@@ -280,7 +280,7 @@ function drawItemRow(
 
   const values = [
     index + 1,
-    item.location || "-",
+    item.Services || "-",
     item.sacHsn || "-",
     item.qty || "-",
     item.note || "",
@@ -400,7 +400,7 @@ function drawTotals(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
 
 function getItemRowHeight(doc: PDFKit.PDFDocument, item: any, columns: any[]) {
   const values = [
-    String(item.location || "-"),
+    String(item.Services || "-"),
     String(item.sacHsn || "-"),
     String(item.qty || "-"),
     String(item.note || ""),
