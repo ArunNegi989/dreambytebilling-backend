@@ -518,7 +518,6 @@ function drawFooter(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
 }
 
 /* ---------------- MAIN PDF GENERATION ---------------- */
-/* ---------------- MAIN PDF GENERATION ---------------- */
 export function streamInvoicePdf(
   res: Response,
   invoice: any,
