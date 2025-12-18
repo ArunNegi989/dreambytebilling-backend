@@ -518,13 +518,17 @@ function drawFooter(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
 }
 
 /* ---------------- MAIN PDF GENERATION ---------------- */
+/* ---------------- MAIN PDF GENERATION ---------------- */
 export function streamInvoicePdf(
   res: Response,
   invoice: any,
   filename = "invoice.pdf"
 ) {
   res.setHeader("Content-Type", "application/pdf");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${filename}"`
+  );
 
   const doc = new PDFDocument({ size: "A4", margin: 0 });
   doc.pipe(res);
@@ -533,48 +537,53 @@ export function streamInvoicePdf(
   let itemIndex = 0;
   let isFirstPage = true;
 
-  const PAGE_BOTTOM = H - 60; // 🔥 FULL usable page
+  const PAGE_BOTTOM = H - 70; // 🔥 SAFE bottom limit
 
   while (itemIndex < items.length || isFirstPage) {
     if (!isFirstPage) {
       doc.addPage({ size: "A4", margin: 0 });
     }
 
+    /* ---------- HEADER ALWAYS ---------- */
     drawHeader(doc, invoice, isFirstPage);
 
     let currentY: number;
 
+    /* ---------- INVOICE INFO ONLY FIRST PAGE ---------- */
     if (isFirstPage) {
       currentY = drawInvoiceInfo(doc, invoice);
     } else {
       currentY = 100;
     }
-    doc.font("Helvetica").fontSize(9).fillColor(COLORS.text);
 
+    /* ---------- ITEMS HEADER ---------- */
     const { columns, headerHeight } = drawItemsTableHeader(doc, currentY);
     currentY += headerHeight;
 
-    // 🔥 PERFECT ITEM LOOP
+    /* ---------- ITEMS LOOP ---------- */
     while (itemIndex < items.length) {
       const item = items[itemIndex];
       const rowHeight = getItemRowHeight(doc, item, columns);
 
+      // ❌ page overflow → next page
       if (currentY + rowHeight > PAGE_BOTTOM) break;
 
-      // draw row ONLY if it fits
       drawItemRow(doc, item, itemIndex, currentY, columns);
-
-      // move Y only after draw
       currentY += rowHeight;
-
-      // increment index only after successful draw
       itemIndex++;
     }
 
-    // ✅ ONLY LAST PAGE GETS TOTALS + FOOTER
+    /* ---------- TOTALS + FOOTER ONLY LAST PAGE ---------- */
     if (itemIndex >= items.length) {
+      // 🔥 space check before totals
+      if (currentY + 220 > PAGE_BOTTOM) {
+        doc.addPage({ size: "A4", margin: 0 });
+        drawHeader(doc, invoice, false);
+        currentY = 100;
+      }
+
       currentY = drawTotals(doc, invoice, currentY);
-      currentY = drawFooter(doc, invoice, currentY);
+      drawFooter(doc, invoice, currentY);
     }
 
     isFirstPage = false;
@@ -582,3 +591,4 @@ export function streamInvoicePdf(
 
   doc.end();
 }
+
