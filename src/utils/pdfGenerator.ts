@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import { Response } from "express";
 import fs from "fs";
 import path from "path";
+import doc from "pdfkit";
 
 /* ---------------- COLORS ---------------- */
 const COLORS = {
@@ -50,6 +51,41 @@ function drawHeader(
   doc.fillColor(COLORS.gold).polygon([420, 0], [595, 0], [595, 110]).fill();
   doc.fillColor(COLORS.darkGold).polygon([500, 0], [595, 0], [595, 65]).fill();
   doc.fillColor("#333").polygon([470, 0], [595, 0], [595, 35]).fill();
+  /* ---------- BOTTOM LEFT CORNER DESIGN ---------- */
+doc.save();
+
+/* MAIN GOLD TRIANGLE */
+doc
+  .fillColor(COLORS.gold)
+  .polygon(
+    [0, H - 110],
+    [0, H],
+    [175, H]
+  )
+  .fill();
+
+/* DARK GOLD INNER TRIANGLE */
+doc
+  .fillColor(COLORS.darkGold)
+  .polygon(
+    [0, H - 65],
+    [0, H],
+    [120, H]
+  )
+  .fill();
+
+/* DARK ACCENT STRIP */
+doc
+  .fillColor("#333")
+  .polygon(
+    [0, H - 35],
+    [0, H],
+    [90, H]
+  )
+  .fill();
+
+doc.restore();
+
 
   /* -------- COMPANY NAME (ALL PAGES) -------- */
   doc
@@ -239,7 +275,10 @@ function drawInvoiceInfo(doc: PDFKit.PDFDocument, invoice: any) {
 }
 
 /* ---------------- DRAW ITEMS TABLE HEADER ---------------- */
+
+
 function drawItemsTableHeader(doc: PDFKit.PDFDocument, startY: number) {
+  doc.fillColor(COLORS.text); // ✅ RESET COLOR
   const tableX = LEFT;
   const tableWidth = RIGHT - LEFT;
 
@@ -487,6 +526,7 @@ function drawFooter(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
   /* -------- RIGHT : SIGNATURE -------- */
   doc.font("Helvetica-Bold").fontSize(9);
   doc.text("Receiver's Signature:", midX + 6, currentY + 6);
+  
 
   doc.font("Helvetica-Bold").fontSize(9);
   doc.text(COMPANY_NAME, midX + 6, currentY + 52, {
