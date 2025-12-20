@@ -525,8 +525,14 @@ function drawFooter(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
 
   /* -------- RIGHT : SIGNATURE -------- */
   doc.font("Helvetica-Bold").fontSize(9);
-  doc.text("Receiver's Signature:", midX + 6, currentY + 6);
-  
+  doc.font("Helvetica-Bold").fontSize(9);
+doc.text("Receiver's Signature:", midX + 6, currentY + 6);
+
+// Line under "Receiver's Signature:"
+doc
+  .moveTo(midX, currentY + 34)
+  .lineTo(tableX + tableWidth, currentY + 34)
+  .stroke(COLORS.muted);
 
   doc.font("Helvetica-Bold").fontSize(9);
   doc.text(COMPANY_NAME, midX + 6, currentY + 52, {
