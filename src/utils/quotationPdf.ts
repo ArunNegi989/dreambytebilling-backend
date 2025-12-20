@@ -213,11 +213,22 @@ function drawQuotationInfo(doc: PDFKit.PDFDocument, q: any) {
   y += 15;
   doc.font("Helvetica").fontSize(9);
 
+  // Quotation No (LEFT)
   doc.text(`Quotation No : ${q.quotationNo || "-"}`, boxX + 10, y);
+
+  // Date (RIGHT)
   doc.text(`Date : ${formatDate(q.quotationDate)}`, boxX + boxWidth - 180, y);
 
-  y += 18;
+  // ✅ Client Mobile (RIGHT, below Date)
+  doc.text(
+    `Client Mobile : ${q.contactNumber || "-"}`,
+    boxX + boxWidth - 180,
+    y + 14
+  );
 
+  y += 15;
+
+  // Client Name
   doc.text(`Client Name : ${q.clientName || "-"}`, boxX + 10, y, {
     width: contentWidth,
   });
@@ -257,11 +268,12 @@ function drawQuotationInfo(doc: PDFKit.PDFDocument, q: any) {
   return y + 30;
 }
 
+
 /* ================= ITEMS TABLE ================= */
 function drawItemsHeader(doc: PDFKit.PDFDocument, y: number) {
   const cols = [
-    { t: "#", w: 40 },
-    { t: "Service", w: 250 },
+    { t: "Sno.", w: 40 },
+    { t: "Service", w: 282 },
     { t: "Rate", w: 100 },
     { t: "Amount", w: 100 },
   ];
@@ -280,7 +292,7 @@ function drawItemsHeader(doc: PDFKit.PDFDocument, y: number) {
 }
 
 function drawItemRow(doc: PDFKit.PDFDocument, it: any, i: number, y: number, quotation: any) {
-  const widths = [40, 250, 100, 100];
+  const widths = [40, 282, 100, 100];
   const values = [
     String(i + 1),
     it.service || "",
@@ -418,61 +430,55 @@ function drawNoteAndSignature(doc: PDFKit.PDFDocument, y: number, quotation: any
 
   // RIGHT SIDE - Receiver's Signature
   const rightPadding = 10;
-  textY = y + 10;
+textY = y + 10;
 
-  doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.text);
-  doc.text("Receiver's Signature:", dividerX + rightPadding, textY, {
-    width: boxWidth / 2 - rightPadding - 10,
-    align: "center",
+doc.font("Helvetica-Bold").fontSize(9).fillColor(COLORS.text);
+doc.text("Receiver's Signature:", dividerX + rightPadding, textY, {
+  width: boxWidth / 2 - rightPadding - 10,
+  align: "center",
+});
+
+textY += 15;
+
+// Horizontal signature line
+const lineY = textY + 20;
+doc.moveTo(dividerX, lineY)
+   .lineTo(boxX + boxWidth, lineY)
+   .stroke(COLORS.text);
+
+textY = lineY + 15;
+
+// Company name (BLACK only)
+doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.text);
+doc.text("DREAMBYTE SOLUTION (OPC) PVT. LTD.", dividerX + rightPadding, textY, {
+  width: boxWidth / 2 - rightPadding - 10,
+  align: "center",
+});
+
+textY += 10;
+
+/* -------- BIG SIGN / STAMP -------- */
+const signPath = path.join(process.cwd(), "public/sign.png");
+
+if (fs.existsSync(signPath)) {
+  const signWidth = 110; // 🔥 bigger size
+  const signX = dividerX + (boxWidth / 2 - signWidth) / 2;
+
+  doc.image(signPath, signX, textY, {
+    width: signWidth,
   });
 
-  textY += 15;
-
-  // Horizontal line for signature (full width from box edge to box edge)
-  const lineY = textY + 20;
-  doc.moveTo(dividerX, lineY)
-     .lineTo(boxX + boxWidth, lineY)
-     .stroke(COLORS.text);
-
-  textY = lineY + 15;
-
-  doc.font("Helvetica-Bold").fontSize(10).fillColor(COLORS.text);
-  doc.text("DREAMBYTE SOLUTION (OPC) PVT. LTD.", dividerX + rightPadding, textY, {
-    width: boxWidth / 2 - rightPadding - 10,
-    align: "center",
-  });
-
-  textY += 14;
-
-  doc.font("Helvetica").fontSize(8).fillColor("#4A90E2");
-  doc.text("DREAMBYTE SOLUTIONS", dividerX + rightPadding, textY, {
-    width: boxWidth / 2 - rightPadding - 10,
-    align: "center",
-  });
-
+  textY += 50; // spacing after sign
+} else {
   textY += 10;
+}
 
-  doc.font("Helvetica").fontSize(8).fillColor("#4A90E2");
-  doc.text("(OPC) PVT. LTD.", dividerX + rightPadding, textY, {
-    width: boxWidth / 2 - rightPadding - 10,
-    align: "center",
-  });
 
-  textY += 15;
-
-  doc.font("Helvetica").fontSize(7).fillColor(COLORS.text);
-  doc.text("For and on behalf of Authorised Sign.", dividerX + rightPadding, textY, {
-    width: boxWidth / 2 - rightPadding - 10,
-    align: "center",
-  });
-
-  textY += 10;
-
-  doc.font("Helvetica-Bold").fontSize(8);
-  doc.text("Authorised Signatory", dividerX + rightPadding, textY, {
-    width: boxWidth / 2 - rightPadding - 10,
-    align: "center",
-  });
+doc.font("Helvetica-Bold").fontSize(8);
+doc.text("Authorised Signatory", dividerX + rightPadding, textY, {
+  width: boxWidth / 2 - rightPadding - 10,
+  align: "center",
+});
 
   return y + boxHeight;
 }
