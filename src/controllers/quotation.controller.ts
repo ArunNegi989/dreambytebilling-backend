@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import Quotation, { IQuotation } from "../models/Quotation.js";
+import { streamQuotationPdf } from "../utils/quotationPdf.js";
 
 /* CREATE */
 export const createQuotation = async (
@@ -82,5 +83,27 @@ export const deleteQuotation = async (
     return res.json({ message: "Quotation deleted successfully" });
   } catch (error: any) {
     return res.status(500).json({ message: error.message });
+  }
+};
+
+export const downloadQuotationPdf = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const quotation = await Quotation.findById(req.params.id);
+
+    if (!quotation) {
+      res.status(404).json({ message: "Quotation not found" });
+      return;
+    }
+
+    streamQuotationPdf(
+      res,
+      quotation,
+      `quotation-${quotation.quotationNo}.pdf`
+    );
+  } catch (err) {
+    res.status(500).json({ message: "PDF generation failed" });
   }
 };

@@ -110,7 +110,7 @@ doc.restore();
 
   const headerTexts = [
     `PAN No: ${invoice.header?.panNo || "-"}`,
-    `Supplier GSTIN: ${invoice.header?.supplierGstin || "-"}`,
+    `GSTIN: ${invoice.header?.supplierGstin || "-"}`,
     `Category: ${invoice.header?.category || "-"}`,
     `CIN No: ${invoice.header?.office?.cin || "-"}`,
     `MSME No: ${invoice.header?.office?.msme || "-"}`,
