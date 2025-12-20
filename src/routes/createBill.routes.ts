@@ -4,7 +4,8 @@ import {
   getAllBills,
   getBillById,
   updateBill,
-  deleteBill
+  deleteBill,
+  downloadBillPdf
 } from "../controllers/createBill.controller.js";
 
 const router = Router();
@@ -14,5 +15,5 @@ router.get("/getallbills", getAllBills);
 router.get("/getbillbyid/:id", getBillById);
 router.put("/updatebill/:id", updateBill);
 router.delete("/deletebill/:id", deleteBill);
-
+router.get("/:id/pdf", downloadBillPdf);
 export default router;
