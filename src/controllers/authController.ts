@@ -14,9 +14,10 @@ function signToken(user: { id: string; email: string; role?: string }) {
       role: user.role
     },
     JWT_KEY,
-    { expiresIn: "7d" }
+    { expiresIn: "60d" } // ✅ 60 days
   );
 }
+
 
 export const register = async (req: Request, res: Response) => {
   const { name, email, password } = req.body as { name?: string; email?: string; password?: string };
