@@ -5,7 +5,7 @@ import { generateInvoiceNumber } from "../utils/generateInvoiceNumber.js";
 import { getFinancialYear } from "../utils/getFinancialYear.js";
 import InvoiceCounter from "../models/InvoiceCounter.js";
 
-/* ---------------- CREATE INVOICE ---------------- */
+/* ================= CREATE INVOICE ================= */
 export const createInvoice = async (req: Request, res: Response) => {
   try {
     const payload = req.body;
@@ -17,7 +17,7 @@ export const createInvoice = async (req: Request, res: Response) => {
       header: payload.header || {},
 
       gstin: payload.gstin,
-      invoiceNo, // ✅ generated here
+      invoiceNo, // ✅ only here
       dateOfInvoice: payload.dateOfInvoice,
       placeOfSupply: payload.placeOfSupply,
 
@@ -40,7 +40,6 @@ export const createInvoice = async (req: Request, res: Response) => {
     });
 
     const savedInvoice = await invoice.save();
-
     res.status(201).json(savedInvoice);
   } catch (error) {
     console.error("Create Invoice Error:", error);
@@ -48,13 +47,10 @@ export const createInvoice = async (req: Request, res: Response) => {
   }
 };
 
-/* ---------------- GET ALL INVOICES ---------------- */
+/* ================= GET ALL ================= */
 export const getInvoices = async (_req: Request, res: Response) => {
   try {
-    const invoices = await Invoice.find()
-      .sort({ createdAt: -1 })
-      .lean();
-
+    const invoices = await Invoice.find().sort({ createdAt: -1 }).lean();
     res.json(invoices);
   } catch (error) {
     console.error("Get Invoices Error:", error);
@@ -62,7 +58,7 @@ export const getInvoices = async (_req: Request, res: Response) => {
   }
 };
 
-/* ---------------- GET SINGLE INVOICE ---------------- */
+/* ================= GET SINGLE ================= */
 export const getInvoice = async (req: Request, res: Response) => {
   try {
     const invoice = await Invoice.findById(req.params.id).lean();
@@ -78,7 +74,36 @@ export const getInvoice = async (req: Request, res: Response) => {
   }
 };
 
-/* ---------------- GENERATE PDF ---------------- */
+/* ================= UPDATE INVOICE ================= */
+export const updateInvoice = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // ❌ NEVER allow invoice number change
+    delete req.body.invoiceNo;
+    delete req.body.createdAt;
+
+    const updatedInvoice = await Invoice.findByIdAndUpdate(
+      id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedInvoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    res.status(200).json(updatedInvoice);
+  } catch (error) {
+    console.error("Update Invoice Error:", error);
+    res.status(500).json({ error: "Failed to update invoice" });
+  }
+};
+
+/* ================= GENERATE PDF ================= */
 export const generateInvoicePdf = async (req: Request, res: Response) => {
   try {
     const invoiceDoc = await Invoice.findById(req.params.id);
@@ -99,6 +124,8 @@ export const generateInvoicePdf = async (req: Request, res: Response) => {
     }
   }
 };
+
+/* ================= NEXT INVOICE NUMBER ================= */
 export const getNextInvoiceNumber = async (_req: Request, res: Response) => {
   try {
     const fy = getFinancialYear(); // eg: 2425
@@ -107,7 +134,6 @@ export const getNextInvoiceNumber = async (_req: Request, res: Response) => {
     const nextSeq = counter ? counter.seq + 1 : 1;
 
     const invoiceNo = `DBS-${fy}-${String(nextSeq).padStart(3, "0")}`;
-
     res.json({ invoiceNo });
   } catch (error) {
     console.error("Next Invoice No Error:", error);
@@ -115,7 +141,7 @@ export const getNextInvoiceNumber = async (_req: Request, res: Response) => {
   }
 };
 
-/* ---------------- DELETE INVOICE ---------------- */
+/* ================= DELETE ================= */
 export const deleteInvoice = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
