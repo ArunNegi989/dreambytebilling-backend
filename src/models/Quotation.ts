@@ -2,7 +2,6 @@ import mongoose, { Schema, Document } from "mongoose";
 
 /* ---------- TYPES ---------- */
 export interface IItem {
-  id: string;
   service: string;
   rate: number;
   amount: number;
@@ -24,34 +23,27 @@ export interface IQuotation extends Document {
 }
 
 /* ---------- ITEM SCHEMA ---------- */
-const ItemSchema = new Schema<IItem>(
-  {
-    id: { type: String, required: true },
-    service: { type: String, required: true },
-    rate: { type: Number, required: true },
-    amount: { type: Number, required: true },
-  },
-  { _id: false }
-);
+const ItemSchema = new Schema<IItem>({
+  service: { type: String, required: true },
+  rate: { type: Number, required: true },
+  amount: { type: Number, required: true },
+});
 
 /* ---------- QUOTATION SCHEMA ---------- */
 const QuotationSchema = new Schema<IQuotation>(
   {
     quotationNo: { type: String, required: true },
-    quotationDate: { type: Date },
+    quotationDate: Date,
     clientName: { type: String, required: true },
-    contactNumber: { type: String },
-    email: { type: String },
+    contactNumber: String,
+    email: String,
     billToAddress: { type: String, required: true },
     items: { type: [ItemSchema], required: true },
     totals: {
-      totalAmount: { type: Number, default: 0 },
+      totalAmount: { type: Number, required: true },
     },
   },
   { timestamps: true }
 );
 
-export default mongoose.model<IQuotation>(
-  "Quotation",
-  QuotationSchema
-);
+export default mongoose.model<IQuotation>("Quotation", QuotationSchema);

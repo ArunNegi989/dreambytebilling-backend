@@ -343,7 +343,7 @@ function drawTotals(doc: PDFKit.PDFDocument, invoice: any, startY: number) {
     align: "left",
   });
 
-  doc.text(formatINR(invoice.totals?.grandTotal || 0), valueX, y, {
+  doc.text(formatINR(invoice.totals?.subtotal || 0), valueX, y, {
     width: valueWidth,
     align: "right",
   });
